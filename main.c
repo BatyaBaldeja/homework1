@@ -133,9 +133,10 @@ int main (int argc, char * argv[])
 	for(int i = 0; i < argc - 1; i++)
 		{printf("%s: ", argv[i + 1]); print_array(a[i], a_size[i]);}
 
-	void ** stack_tmp = malloc(argc_c * sizeof(stack_tmp[0]));
 
 	contexts = malloc(argc_c * sizeof(ucontext_t));
+
+	void ** stack_tmp = malloc(argc_c * sizeof(stack_tmp[0]));
 
 	t = (double *)malloc((argc - 1) * sizeof(double));
 	t_start = (double *)malloc((argc - 1) * sizeof(double));
@@ -146,8 +147,7 @@ int main (int argc, char * argv[])
 		t_start[i] = t_end[i] = t[i] = 0;
 
 		getcontext(&contexts[i]);
-		contexts[i].uc_stack.ss_sp = allocate_stack_mprot();
-		stack_tmp[i] = contexts[i].uc_stack.ss_sp;
+		stack_tmp[i] = contexts[i].uc_stack.ss_sp = allocate_stack_mprot();
 		contexts[i].uc_stack.ss_size = STACK_SIZE;
 		if(i < argc_c) contexts[i].uc_link = &main_context;
 		makecontext(&contexts[i], (void (*)(void))sort, 3, a[i], a_size[i], i);
@@ -175,6 +175,6 @@ int main (int argc, char * argv[])
 	free(contexts);
 	free(t); free(t_start); free(t_end);
 	free(c_finish); free(a); free(a_size);
+	free(stack_tmp);
 	return 0;
 }
-
