@@ -55,9 +55,9 @@ void merge(int ** a, int * a_size, int total_size, FILE * fp)
 	free(curr);
 }
 
-ucontext_t * allocate_stack_mprot()
+void * allocate_stack_mprot()
 {
-	ucontext_t * stack = (ucontext_t *)malloc(STACK_SIZE);
+	void * stack = malloc(STACK_SIZE);
 	mprotect(stack, STACK_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC);
 	return stack;
 }
@@ -133,17 +133,22 @@ int main (int argc, char * argv[])
 	for(int i = 0; i < argc - 1; i++)
 		{printf("%s: ", argv[i + 1]); print_array(a[i], a_size[i]);}
 
+	void ** stack_tmp = malloc(argc_c * sizeof(stack_tmp[0]));
 
-	contexts = (ucontext_t *)malloc(argc_c * sizeof(ucontext_t));
+	contexts = malloc(argc_c * sizeof(ucontext_t));
+
 	t = (double *)malloc((argc - 1) * sizeof(double));
 	t_start = (double *)malloc((argc - 1) * sizeof(double));
 	t_end = (double *)malloc((argc - 1) * sizeof(double));
+
 	for(int i = 0; i < argc_c; i++) 
 	{
 		t_start[i] = t_end[i] = t[i] = 0;
-		contexts[i].uc_stack.ss_sp = allocate_stack_mprot();
-		contexts[i].uc_stack.ss_size = STACK_SIZE;
+
 		getcontext(&contexts[i]);
+		contexts[i].uc_stack.ss_sp = allocate_stack_mprot();
+		stack_tmp[i] = contexts[i].uc_stack.ss_sp;
+		contexts[i].uc_stack.ss_size = STACK_SIZE;
 		if(i < argc_c) contexts[i].uc_link = &main_context;
 		makecontext(&contexts[i], (void (*)(void))sort, 3, a[i], a_size[i], i);
 	}
@@ -163,7 +168,7 @@ int main (int argc, char * argv[])
 	for(int i = 0; i < argc_c; i++) 
 	{
 		free(a[i]);
-		free(contexts[i].uc_stack.ss_sp);
+		free(stack_tmp[i]);
 		printf("test%d time: %.2lf\n", i + 1, t[i] / CLOCKS_PER_SEC);
 	}
 	printf("Total time of sorting: %.2lf\n", time);
